@@ -166,6 +166,12 @@
 <script src="{{ SEARCH_FILENAME_PREFIX }}-v{{ SEARCHDATA_FORMAT_VERSION }}.js" async="async"></script>
 {% endif %}
 {% endif %}
+{% if MERMAID_ENABLED and MERMAID_JS_URL %}
+<script type="module">
+  import mermaid from '{{ MERMAID_JS_URL }}';
+  mermaid.initialize({{ MERMAID_CONFIG|tojson }});
+</script>
+{% endif %}
 {% if FINE_PRINT %}
 <footer><nav>
   <div class="m-container">

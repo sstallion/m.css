@@ -43,6 +43,7 @@ import xml.etree.ElementTree as ET
 import argparse
 import copy
 import enum
+import json
 import sys
 import re
 import html
@@ -143,6 +144,8 @@ default_config = {
     "FILE_INDEX_EXPAND_LEVELS": 1,
     "CLASS_INDEX_EXPAND_INNER": False,
     "M_MATH_CACHE_FILE": "m.math.cache",
+    "MERMAID_JS_URL": "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs",
+    "MERMAID_CONFIG": {"theme": "dark", "startOnLoad": True},
     "M_MATH_RENDER_AS_CODE": False,
     "M_CODE_FILTERS_PRE": {},
     "M_CODE_FILTERS_POST": {},
@@ -213,6 +216,7 @@ class State:
         self.current_compound_url = None
         self.current_definition_url_base = None
         self.parsing_toplevel_desc = False
+        self.has_mermaid = False
         self.namespace_members = {}
 
 
@@ -717,6 +721,8 @@ def parse_desc_internal(
                 "image",
                 "dot",
                 "dotfile",
+                "mermaid",
+                "mermaidfile",
                 "table",
                 "{http://mcss.mosra.cz/doxygen/}div",
                 "htmlonly",
@@ -1490,6 +1496,59 @@ def parse_desc_internal(
                 out.parsed += '<div class="m-graph{}">{}</div>'.format(
                     " " + add_css_class if add_css_class else "",
                     dot2svg.dot2svg(source, size),
+                )
+
+        elif i.tag in ["mermaid", "mermaidfile"]:
+            assert element.tag in ["para", "{http://mcss.mosra.cz/doxygen/}div"]
+            has_block_elements = True
+
+            caption = None
+            if i.tag == "mermaidfile":
+                if "name" in i.attrib:
+                    path = os.path.join(
+                        state.basedir,
+                        state.doxyfile["OUTPUT_DIRECTORY"],
+                        state.doxyfile["XML_OUTPUT"],
+                        i.attrib["name"],
+                    )
+                    with open(path, "r") as f:
+                        source = f.read()
+                else:
+                    logging.warning(
+                        "{}: file passed to @mermaidfile was not found, skipping".format(
+                            state.current
+                        )
+                    )
+                    source = ""
+                caption = i.text
+            else:
+                source = i.text
+                if "caption" in i.attrib:
+                    caption = i.attrib["caption"]
+
+            state.has_mermaid = True
+
+            size = None
+            if "width" in i.attrib:
+                size = "width: {};".format(i.attrib["width"])
+            elif "height" in i.attrib:
+                size = "height: {};".format(i.attrib["height"])
+
+            mermaid_html = '<pre class="mermaid"{}>{}</pre>'.format(
+                ' style="{}"'.format(size) if size else "",
+                html.escape(source) if source else "",
+            )
+
+            if caption:
+                out.parsed += '<figure class="m-figure{}"><div class="m-graph">{}</div><figcaption>{}</figcaption></figure>'.format(
+                    " " + add_css_class if add_css_class else "",
+                    mermaid_html,
+                    caption,
+                )
+            else:
+                out.parsed += '<div class="m-graph{}">{}</div>'.format(
+                    " " + add_css_class if add_css_class else "",
+                    mermaid_html,
                 )
 
         elif i.tag == "hruler":
@@ -3667,6 +3726,7 @@ def add_sibling_navigation(parsed_compounds: dict[str, StateCompound]):
 def parse_xml(state: State, xml: str):
     # Reset counter for unique math formulas
     latex2svgextra.counter = 0
+    state.has_mermaid = False
 
     state.current = os.path.basename(xml)
 
@@ -4825,6 +4885,8 @@ def parse_xml(state: State, xml: str):
         result.keywords = search_keywords
         state.search += [result]
 
+    compound.has_mermaid = state.has_mermaid
+
     parsed = Empty()
     parsed.version = root.attrib["version"]
     parsed.compound = compound
@@ -5145,6 +5207,7 @@ def parse_doxyfile(state: State, doxyfile, values=None):
         ("M_VERSION_LABELS", "VERSION_LABELS", bool),
         ("M_MATH_CACHE_FILE", "M_MATH_CACHE_FILE", str),
         ("M_MATH_RENDER_AS_CODE", "M_MATH_RENDER_AS_CODE", bool),
+        ("MERMAID_JS_URL", "MERMAID_JS_URL", str),
     ]:
         if key not in values:
             continue
@@ -5380,6 +5443,7 @@ def run(
 
     env.filters["rtrim"] = rtrim
     env.filters["basename_or_url"] = basename_or_url
+    env.filters["tojson"] = json.dumps
     env.filters["urljoin"] = urllib.parse.urljoin
 
     # Do a pre-pass and gather:
@@ -5411,6 +5475,7 @@ def run(
                     DOXYGEN_VERSION=parsed.version,
                     FILENAME=file,
                     SEARCHDATA_FORMAT_VERSION=searchdata_format_version,
+                    MERMAID_ENABLED=False,
                     # TODO: whitelist only what matters from doxyfile
                     **state.doxyfile,
                     **state.config,
@@ -5441,6 +5506,7 @@ def run(
             DOXYGEN_VERSION=parsed.version,
             FILENAME=parsed.compound.url,
             SEARCHDATA_FORMAT_VERSION=searchdata_format_version,
+            MERMAID_ENABLED=getattr(parsed.compound, 'has_mermaid', False),
             # TODO: whitelist only what matters from doxyfile
             **state.doxyfile,
             **state.config,
@@ -5474,6 +5540,7 @@ def run(
                 FILENAME="index.html",
                 SEARCHDATA_FORMAT_VERSION=searchdata_format_version,
                 IS_INDEX_PAGE=True,
+                MERMAID_ENABLED=False,
                 **state.doxyfile,
                 **state.config,
             )
@@ -5489,6 +5556,7 @@ def run(
                 DOXYGEN_VERSION=None,
                 FILENAME="index.html",
                 SEARCHDATA_FORMAT_VERSION=searchdata_format_version,
+                MERMAID_ENABLED=False,
                 # TODO: whitelist only what matters from doxyfile
                 **state.doxyfile,
                 **state.config,
