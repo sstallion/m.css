@@ -48,6 +48,9 @@ class Xmls(BaseTestCase):
 
             # The index.xml should be parsed and not produce any warning
 
+            # The markdown_8md.xml should be silently ignored because
+            # language="Markdown" on the <compounddef>
+
             # A file that has <doxygen> but something weird inside, skipped
             # also
             "WARNING:root:thingsgotcrazy.xml: first child element expected to be <compounddef> but is <crazyisay>, skipping whole file"

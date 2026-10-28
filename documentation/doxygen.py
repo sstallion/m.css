@@ -18,6 +18,7 @@
 #   Copyright © 2022 SRGDamia1 <sdamiano@stroudcenter.org>
 #   Copyright © 2022 luz paz <luzpaz@pm.me>
 #   Copyright © 2022 Mark Gillard <marzer_@hotmail.com>
+#   Copyright © 2026 Steven Stallion <sstallion@gmail.com>
 #
 #   Permission is hereby granted, free of charge, to any person obtaining a
 #   copy of this software and associated documentation files (the "Software"),
@@ -3203,6 +3204,13 @@ def extract_metadata(state: State, xml):
             )
         )
         return
+
+    # Doxygen generates empty kind="file" compounds for Markdown source
+    # files alongside the real kind="page" compounds that carry the actual
+    # content. Reproduced in the test_ignored.Xmls test case.
+    if compounddef.attrib.get("language") == "Markdown":
+        return
+
     # Using `in []` to prepare for potential future additions like 'C', but so
     # far Doxygen treats even *.c files as language="C++". Reproduced in the
     # test_ignored.Languages test case.
@@ -3680,6 +3688,8 @@ def parse_xml(state: State, xml: str):
     if compounddef.tag != "compounddef":
         return
     # See extract_metadata() for why `in []` is used
+    if compounddef.attrib.get("language") == "Markdown":
+        return
     if compounddef.attrib.get("language", "C++") not in ["C++"]:
         return
 
