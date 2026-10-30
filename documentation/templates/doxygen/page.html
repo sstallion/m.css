@@ -12,11 +12,11 @@
 {% endblock %}
 
 {% block main %}
-        <h1>
+        <h1 id="top">
           {% for name, target in compound.breadcrumb[:-1] %}
           <span class="m-breadcrumb"><a href="{{ target }}">{{ name }}</a> &raquo;</span>
           {% endfor %}
-          {{ compound.breadcrumb[-1][0] }}{% if compound.since %} {{ compound.since }}{% endif %}
+          <a href="#top">{{ compound.breadcrumb[-1][0] }}</a>{% if compound.since %} {{ compound.since }}{% endif %}
           {# need an explicit space here otherwise the newline gets removed #}
 
         </h1>
@@ -36,6 +36,7 @@
 <nav class="m-sidebar">
   <h4 style="padding-top: 0.5rem;">Contents</h4>
   <ul class="m-unstyled">
+    <li style="margin-bottom: 0px;"><a href="#top" class="m-toc">Top</a></li>
     {% for id, name, children in compound.sections recursive %}
     {% if children %}
     <li style="margin-bottom: 0px;">

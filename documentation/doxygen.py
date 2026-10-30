@@ -2458,6 +2458,15 @@ def parse_var_desc(
     )
 
 
+def filter_sections_by_depth(sections, max_depth, current_depth=1):
+    if not sections or current_depth > max_depth:
+        return []
+    return [
+        (id, title, filter_sections_by_depth(children, max_depth, current_depth + 1))
+        for id, title, children in sections
+    ]
+
+
 def parse_toplevel_desc(
     state: State, element: ET.Element
 ) -> Tuple[str, List[Any], str, Any, Any, List[Tuple[str, str, int]], bool]:
@@ -4020,6 +4029,13 @@ def parse_xml(state: State, xml: str):
         if compounddef.find("tableofcontents") is None:
             compound.sections = []
 
+        if compound.sections:
+            toc_depth = state.doxyfile.get('TOC_INCLUDE_HEADINGS', 6)
+            if toc_depth > 0:
+                compound.sections = filter_sections_by_depth(
+                    compound.sections, toc_depth - 1
+                )
+
         # Enable footer navigation, if requested
         if footer_navigation:
             up = state.compounds[compound.id].parent
@@ -5059,6 +5075,7 @@ def parse_doxyfile(state: State, doxyfile, values=None):
         "SHOW_INCLUDE_FILES": ["YES"],
         "STRIP_FROM_PATH": [""],
         "STRIP_FROM_INC_PATH": [""],
+        "TOC_INCLUDE_HEADINGS": ["6"],
     }
 
     # Defaults so we don't fail with minimal Doxyfiles and also that the
@@ -5208,6 +5225,7 @@ def parse_doxyfile(state: State, doxyfile, values=None):
         ("M_MATH_CACHE_FILE", "M_MATH_CACHE_FILE", str),
         ("M_MATH_RENDER_AS_CODE", "M_MATH_RENDER_AS_CODE", bool),
         ("MERMAID_JS_URL", "MERMAID_JS_URL", str),
+        ("TOC_INCLUDE_HEADINGS", None, int),
     ]:
         if key not in values:
             continue

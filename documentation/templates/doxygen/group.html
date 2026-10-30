@@ -3,9 +3,9 @@
 {% block title %}{% set j = joiner(' &raquo; ') %}{% for name, _ in compound.breadcrumb %}{{ j() }}{{ name }}{% endfor %} module | {{ super() }}{% endblock %}
 
 {% block header %}
-        <h1>
+        <h1 id="top">
           {% for name, target in compound.breadcrumb[:-1] %}
           <span class="m-breadcrumb"><a href="{{ target }}">{{ name }}</a> &raquo;</span>
           {% endfor %}
-          {{ compound.breadcrumb[-1][0] }} <span class="m-thin">module</span>{% if compound.since %} {{ compound.since }}{% endif %}</h1>
+          <a href="#top">{{ compound.breadcrumb[-1][0] }}</a> <span class="m-thin">module</span>{% if compound.since %} {{ compound.since }}{% endif %}</h1>
 {% endblock %}

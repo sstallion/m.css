@@ -49,6 +49,13 @@ class Toc(IntegrationTestCase):
         self.run_doxygen(wildcard='page-toc.xml')
         self.assertEqual(*self.actual_expected_contents('page-toc.html'))
 
+class TocIncludeHeadings(IntegrationTestCase):
+    @unittest.skipUnless(parse_version(doxygen_version()) > parse_version("1.8.13"),
+                         "https://github.com/doxygen/doxygen/pull/625")
+    def test(self):
+        self.run_doxygen(wildcard='page-toc.xml')
+        self.assertEqual(*self.actual_expected_contents('page-toc.html'))
+
 class InNavbar(IntegrationTestCase):
     def test(self):
         self.run_doxygen(wildcard='page*.xml')

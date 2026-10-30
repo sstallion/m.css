@@ -52,6 +52,7 @@ class Doxyfile(unittest.TestCase):
         'SHOW_INCLUDE_FILES': True,
         'STRIP_FROM_INC_PATH': [],
         'STRIP_FROM_PATH': [],
+        'TOC_INCLUDE_HEADINGS': 6,
         'XML_OUTPUT': 'xml'
     }
     expected_config = {
